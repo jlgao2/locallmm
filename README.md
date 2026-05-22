@@ -28,6 +28,18 @@ harness.
 | `llm "a question"` | one-shot verified answer |
 | `hermes chat` | agentic assistant |
 
+## Using the local model in Hermes Agent
+
+Hermes Agent's `lmstudio` provider is wired to the local MLX server via
+`LM_BASE_URL` in `~/.hermes/.env`. Your existing Hermes default model is
+untouched — to run the agent on the local model:
+
+```
+hermes chat --provider lmstudio --model mlx-community/Qwen3.6-35B-A3B-4bit-DWQ
+```
+
+Or switch to it mid-session with Hermes's `/model` command.
+
 ## Configuration (`.env`)
 
 - `MLX_MODEL` — swap the local model (any MLX model on Hugging Face). Tested
