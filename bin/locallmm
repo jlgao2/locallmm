@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# locallmm — start / stop / status for the local AI stack servers.
+set -euo pipefail
+
+ROOT="/Users/georgegao/Projects/locallmm"
+VENV="$ROOT/.venv"
+RUN="$ROOT/.run"
+mkdir -p "$RUN"
+
+set -a
+[ -f "$ROOT/.env" ] && . "$ROOT/.env"
+set +a
+MLX_PORT="${MLX_PORT:-8000}"
+PROXY_PORT="${PROXY_PORT:-8100}"
+MLX_MODEL="${MLX_MODEL:-mlx-community/Qwen3.6-35B-A3B-4bit-DWQ}"
+
+_alive() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
+
+start() {
+  if _alive "$RUN/mlx.pid"; then
+    echo "mlx:   already running"
+  else
+    echo "mlx:   starting mlx_lm.server ($MLX_MODEL) on :$MLX_PORT"
+    nohup "$VENV/bin/mlx_lm.server" --model "$MLX_MODEL" \
+      --host 127.0.0.1 --port "$MLX_PORT" >"$RUN/mlx.log" 2>&1 &
+    echo $! >"$RUN/mlx.pid"
+  fi
+  if _alive "$RUN/proxy.pid"; then
+    echo "proxy: already running"
+  else
+    echo "proxy: starting verify-correct proxy on :$PROXY_PORT"
+    nohup "$VENV/bin/uvicorn" verify_proxy:app --app-dir "$ROOT/proxy" \
+      --host 127.0.0.1 --port "$PROXY_PORT" >"$RUN/proxy.log" 2>&1 &
+    echo $! >"$RUN/proxy.pid"
+  fi
+  echo "logs: $RUN/{mlx,proxy}.log   (mlx first load takes ~20-40s)"
+}
+
+stop() {
+  for name in proxy mlx; do
+    if _alive "$RUN/$name.pid"; then
+      kill "$(cat "$RUN/$name.pid")" && echo "$name: stopped"
+    else
+      echo "$name: not running"
+    fi
+    rm -f "$RUN/$name.pid"
+  done
+}
+
+status() {
+  _alive "$RUN/mlx.pid"   && echo "mlx:   process up (pid $(cat "$RUN/mlx.pid"))"   || echo "mlx:   process down"
+  _alive "$RUN/proxy.pid" && echo "proxy: process up (pid $(cat "$RUN/proxy.pid"))" || echo "proxy: process down"
+  curl -fsS "http://127.0.0.1:$MLX_PORT/v1/models" >/dev/null 2>&1 \
+    && echo "mlx:   responding on :$MLX_PORT" || echo "mlx:   not responding on :$MLX_PORT"
+  curl -fsS "http://127.0.0.1:$PROXY_PORT/health" >/dev/null 2>&1 \
+    && echo "proxy: responding on :$PROXY_PORT" || echo "proxy: not responding on :$PROXY_PORT"
+}
+
+case "${1:-}" in
+  start)   start ;;
+  stop)    stop ;;
+  restart) stop; sleep 1; start ;;
+  status)  status ;;
+  *) echo "usage: locallmm {start|stop|restart|status}"; exit 1 ;;
+esac
