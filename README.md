@@ -35,7 +35,7 @@ harness.
 - `VERIFIER_PROVIDER` / `VERIFIER_MODEL` — pick the cloud verifier and cost tier:
   - `anthropic` + `claude-opus-4-7` — max quality
   - `anthropic` + `claude-sonnet-4-6` — balanced (default)
-  - `deepseek` + `deepseek-v4-flash` — lowest cost
+  - `deepseek` + `deepseek-v4-flash` (cheapest) or `deepseek-v4-pro` (flagship reasoner)
   - `openai` + a GPT model — alternative
   - `openai-compatible` + `VERIFIER_BASE_URL` — any other OpenAI-compatible API
 
