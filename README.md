@@ -26,7 +26,18 @@ harness.
 | `locallmm start` / `stop` / `restart` / `status` | manage the servers |
 | `llm` | interactive verified chat |
 | `llm "a question"` | one-shot verified answer |
-| `hermes chat` | agentic assistant |
+| `cmd \| llm "instruction"` | pipe stdin into a verified one-shot |
+| `agent` | preflight the stack, then `hermes chat` from cwd |
+| `hermes chat` | agentic assistant (auto-loads `AGENTS.md` from cwd) |
+
+CLI examples:
+
+```
+git diff | llm "what's risky here?"
+cat foo.py | llm "review this for bugs"
+llm "write a regex for ISO-8601 dates" > regex.txt
+cd ~/Projects/myrepo && agent
+```
 
 ## Using the local model in Hermes Agent
 

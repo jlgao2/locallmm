@@ -20,20 +20,24 @@ def ask(messages: list) -> str:
 
 
 def ask_with_status(messages: list) -> str:
-    sys.stdout.write("  (drafting + verifying…)")
-    sys.stdout.flush()
+    sys.stderr.write("  (drafting + verifying…)")
+    sys.stderr.flush()
     try:
         answer = ask(messages)
     finally:
-        sys.stdout.write("\r" + " " * 32 + "\r")
-        sys.stdout.flush()
+        sys.stderr.write("\r" + " " * 32 + "\r")
+        sys.stderr.flush()
     return answer
 
 
 def main() -> None:
     history: list = []
-    if len(sys.argv) > 1:  # one-shot mode
-        history.append({"role": "user", "content": " ".join(sys.argv[1:])})
+    stdin_text = "" if sys.stdin.isatty() else sys.stdin.read().strip()
+    if len(sys.argv) > 1 or stdin_text:  # one-shot mode
+        prompt = " ".join(sys.argv[1:])
+        if stdin_text:
+            prompt = f"{prompt}\n\n{stdin_text}" if prompt else stdin_text
+        history.append({"role": "user", "content": prompt})
         print(ask_with_status(history))
         return
     print("locallmm chat — Ctrl-D or 'exit' to quit")
