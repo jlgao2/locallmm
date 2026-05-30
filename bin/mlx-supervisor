@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# mlx-supervisor — keeps mlx_lm.server running, auto-restarts it if it crashes.
+# Launched by `locallmm start`; stopped together with its child by `locallmm stop`.
+# Deliberately NO `set -e`: mlx_lm.server exiting non-zero is expected (that is
+# the whole point) and must not kill this supervisor.
+set -uo pipefail
+
+ROOT="/Users/georgegao/Projects/locallmm"
+VENV="$ROOT/.venv"
+
+set -a
+[ -f "$ROOT/.env" ] && . "$ROOT/.env"
+set +a
+MLX_PORT="${MLX_PORT:-8000}"
+MLX_MODEL="${MLX_MODEL:-mlx-community/Qwen3.6-35B-A3B-4bit-DWQ}"
+MLX_PROMPT_CACHE_BYTES="${MLX_PROMPT_CACHE_BYTES:-2147483648}"  # 2 GiB cap
+
+child=""
+shutdown() { [ -n "$child" ] && kill "$child" 2>/dev/null; exit 0; }
+trap shutdown TERM INT
+
+while true; do
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] starting mlx_lm.server ($MLX_MODEL) on :$MLX_PORT"
+  "$VENV/bin/mlx_lm.server" --model "$MLX_MODEL" \
+    --host 127.0.0.1 --port "$MLX_PORT" \
+    --prompt-cache-bytes "$MLX_PROMPT_CACHE_BYTES" &
+  child=$!
+  wait "$child"
+  code=$?
+  child=""
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] mlx_lm.server exited (code $code) — restarting in 5s"
+  sleep 5
+done

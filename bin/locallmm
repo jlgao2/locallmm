@@ -20,9 +20,8 @@ start() {
   if _alive "$RUN/mlx.pid"; then
     echo "mlx:   already running"
   else
-    echo "mlx:   starting mlx_lm.server ($MLX_MODEL) on :$MLX_PORT"
-    nohup "$VENV/bin/mlx_lm.server" --model "$MLX_MODEL" \
-      --host 127.0.0.1 --port "$MLX_PORT" >"$RUN/mlx.log" 2>&1 &
+    echo "mlx:   starting mlx_lm.server ($MLX_MODEL) on :$MLX_PORT  [auto-restart]"
+    nohup "$ROOT/bin/mlx-supervisor" >"$RUN/mlx.log" 2>&1 &
     echo $! >"$RUN/mlx.pid"
   fi
   if _alive "$RUN/proxy.pid"; then

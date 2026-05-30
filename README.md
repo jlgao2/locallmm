@@ -40,10 +40,20 @@ hermes chat --provider lmstudio --model mlx-community/Qwen3.6-35B-A3B-4bit-DWQ
 
 Or switch to it mid-session with Hermes's `/model` command.
 
+## Editor integration
+
+Any editor with an OpenAI-compatible model setting (Continue.dev, Cursor,
+Zed) can use the proxy at `http://127.0.0.1:8100/v1`. See
+[docs/editor-integration.md](docs/editor-integration.md) for per-editor
+config.
+
 ## Configuration (`.env`)
 
-- `MLX_MODEL` — swap the local model (any MLX model on Hugging Face). Tested
-  alternate: `mlx-community/gemma-4-26b-a4b-it-4bit`.
+- `MLX_MODEL` — swap the local model (any MLX model on Hugging Face).
+  Tested alternates:
+  - `mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit` — code-tuned, same
+    MoE shape as the default
+  - `mlx-community/gemma-4-26b-a4b-it-4bit` — smaller, lower memory
 - `VERIFIER_PROVIDER` / `VERIFIER_MODEL` — pick the cloud verifier and cost tier:
   - `anthropic` + `claude-opus-4-7` — max quality
   - `anthropic` + `claude-sonnet-4-6` — balanced (default)
@@ -56,3 +66,5 @@ Or switch to it mid-session with Hermes's `/model` command.
 - `mlx: not responding` → check `.run/mlx.log`; the model may still be loading.
 - Out of memory → switch `MLX_MODEL` to the smaller Gemma 4 alternate.
 - Answers tagged `⚠ unverified` → no verifier API key set; add one to `.env`.
+- The MLX server **auto-restarts** if it crashes — `bin/mlx-supervisor` wraps it; crash history stays in `.run/mlx.log`.
+- Heavy agentic use exhausting GPU memory? Raise the limit: `sudo bash macos/install-gpu-limit.sh`.
