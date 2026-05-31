@@ -2,7 +2,7 @@
 # locallmm — start / stop / status for the local AI stack servers.
 set -euo pipefail
 
-ROOT="/Users/georgegao/Projects/locallmm"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV="$ROOT/.venv"
 RUN="$ROOT/.run"
 mkdir -p "$RUN"

@@ -16,7 +16,8 @@ harness.
 
 1. `cp .env.example .env` and fill in an API key (optional — works without one).
 2. `bin/locallmm start` — starts both servers (first model load ~20-40s).
-3. Add `bin/` to PATH — append to `~/.zshrc`:
+3. Add `bin/` to PATH — append to `~/.zshrc` (point at wherever you cloned the
+   repo; the scripts locate the rest themselves):
    `export PATH="$HOME/Projects/locallmm/bin:$PATH"`
 
 ## Commands

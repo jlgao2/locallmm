@@ -4,7 +4,7 @@
 # project first.
 set -euo pipefail
 
-ROOT="/Users/georgegao/Projects/locallmm"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${MLX_PORT:-8000}"
 
 if ! curl -fsS "http://127.0.0.1:$PORT/v1/models" >/dev/null 2>&1; then
