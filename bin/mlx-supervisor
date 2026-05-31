@@ -5,7 +5,7 @@
 # the whole point) and must not kill this supervisor.
 set -uo pipefail
 
-ROOT="/Users/georgegao/Projects/locallmm"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV="$ROOT/.venv"
 
 set -a
