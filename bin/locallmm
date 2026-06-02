@@ -12,7 +12,9 @@ set -a
 set +a
 MLX_PORT="${MLX_PORT:-8000}"
 PROXY_PORT="${PROXY_PORT:-8100}"
+VLM_PORT="${VLM_PORT:-8001}"
 MLX_MODEL="${MLX_MODEL:-mlx-community/Qwen3.6-35B-A3B-4bit-DWQ}"
+VLM_MODEL="${VLM_MODEL:-mlx-community/Qwen3-VL-30B-A3B-Instruct-4bit}"
 
 _alive() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
 
@@ -35,30 +37,50 @@ start() {
   echo "logs: $RUN/{mlx,proxy}.log   (mlx first load takes ~20-40s)"
 }
 
-stop() {
-  for name in proxy mlx; do
-    if _alive "$RUN/$name.pid"; then
-      kill "$(cat "$RUN/$name.pid")" && echo "$name: stopped"
-    else
-      echo "$name: not running"
-    fi
-    rm -f "$RUN/$name.pid"
-  done
+# Vision server is opt-in: it is NOT started by `start` so it never competes
+# with the text model for memory. Bring it up with `vision-start` when needed.
+vision_start() {
+  if _alive "$RUN/vlm.pid"; then
+    echo "vlm:   already running"
+  else
+    echo "vlm:   starting mlx_vlm.server ($VLM_MODEL) on :$VLM_PORT  (first load ~20-40s)"
+    nohup "$VENV/bin/mlx_vlm.server" --model "$VLM_MODEL" \
+      --host 127.0.0.1 --port "$VLM_PORT" >"$RUN/vlm.log" 2>&1 &
+    echo $! >"$RUN/vlm.pid"
+    echo "logs: $RUN/vlm.log"
+  fi
 }
+
+_stop_one() {
+  local name="$1"
+  if _alive "$RUN/$name.pid"; then
+    kill "$(cat "$RUN/$name.pid")" && echo "$name: stopped"
+  else
+    echo "$name: not running"
+  fi
+  rm -f "$RUN/$name.pid"
+}
+
+stop() { for name in proxy mlx vlm; do _stop_one "$name"; done; }
 
 status() {
   _alive "$RUN/mlx.pid"   && echo "mlx:   process up (pid $(cat "$RUN/mlx.pid"))"   || echo "mlx:   process down"
   _alive "$RUN/proxy.pid" && echo "proxy: process up (pid $(cat "$RUN/proxy.pid"))" || echo "proxy: process down"
+  _alive "$RUN/vlm.pid"   && echo "vlm:   process up (pid $(cat "$RUN/vlm.pid"))"   || echo "vlm:   process down"
   curl -fsS "http://127.0.0.1:$MLX_PORT/v1/models" >/dev/null 2>&1 \
     && echo "mlx:   responding on :$MLX_PORT" || echo "mlx:   not responding on :$MLX_PORT"
   curl -fsS "http://127.0.0.1:$PROXY_PORT/health" >/dev/null 2>&1 \
     && echo "proxy: responding on :$PROXY_PORT" || echo "proxy: not responding on :$PROXY_PORT"
+  curl -fsS "http://127.0.0.1:$VLM_PORT/health" >/dev/null 2>&1 \
+    && echo "vlm:   responding on :$VLM_PORT" || echo "vlm:   not responding on :$VLM_PORT"
 }
 
 case "${1:-}" in
-  start)   start ;;
-  stop)    stop ;;
-  restart) stop; sleep 1; start ;;
-  status)  status ;;
-  *) echo "usage: locallmm {start|stop|restart|status}"; exit 1 ;;
+  start)        start ;;
+  stop)         stop ;;
+  restart)      stop; sleep 1; start ;;
+  status)       status ;;
+  vision-start) vision_start ;;
+  vision-stop)  _stop_one vlm ;;
+  *) echo "usage: locallmm {start|stop|restart|status|vision-start|vision-stop}"; exit 1 ;;
 esac

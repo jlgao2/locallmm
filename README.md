@@ -10,6 +10,8 @@ harness.
 - **Verify-correct proxy** — `:8100`; drafts locally, then a cloud model verifies
   and corrects. Degrades to the local draft if no key / offline.
 - **`llm`** — quick verified chat.
+- **`vlm`** — quick vision chat (image + prompt) against the opt-in vision
+  server on `:8001`.
 - **`hermes chat`** — the agent harness (tools, memory, multi-step).
 
 ## Setup
@@ -28,6 +30,8 @@ harness.
 | `llm` | interactive verified chat |
 | `llm "a question"` | one-shot verified answer |
 | `cmd \| llm "instruction"` | pipe stdin into a verified one-shot |
+| `locallmm vision-start` / `vision-stop` | start/stop the opt-in vision server |
+| `vlm "what's this?" img.png` | one-shot vision query (image path/URL + prompt) |
 | `agent` | preflight the stack, then `hermes chat` from cwd |
 | `hermes chat` | agentic assistant (auto-loads `AGENTS.md` from cwd) |
 
@@ -39,6 +43,27 @@ cat foo.py | llm "review this for bugs"
 llm "write a regex for ISO-8601 dates" > regex.txt
 cd ~/Projects/myrepo && agent
 ```
+
+## Vision
+
+Image understanding runs on a separate, **opt-in** server (`mlx_vlm.server`
+with Qwen3-VL-30B-A3B on `:8001`). It is *not* started by `locallmm start` — at
+48 GB you don't want the vision and text models resident at once — so bring it
+up only when you need it:
+
+```
+locallmm vision-start            # loads the VL model (~20-40s first time)
+vlm "what's in this screenshot?" shot.png
+vlm describe ~/Pictures/diagram.jpg
+cat context.txt | vlm "use this, then read the chart" chart.png
+locallmm vision-stop             # free the memory when done
+```
+
+Any argument that is an existing file, an `http(s)://` URL, or a `data:` URI is
+attached as an image; everything else is the prompt. Vision goes straight to the
+VL server — it does not pass through the verify-correct proxy.
+
+Change the model or port with `VLM_MODEL` / `VLM_PORT` in `.env`.
 
 ## Using the local model in Hermes Agent
 
